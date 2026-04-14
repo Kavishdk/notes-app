@@ -2,10 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import authRoutes from './backend/routes/authRoutes';
-import notesRoutes from './backend/routes/notesRoutes';
-import { authMiddleware } from './backend/middleware/authMiddleware';
-import { initDb } from './backend/db';
+import authRoutes from './backend/routes/authRoutes.js';
+import notesRoutes from './backend/routes/notesRoutes.js';
+import { authMiddleware } from './backend/middleware/authMiddleware.js';
+import { initDb } from './backend/db.js';
 
 async function startServer() {
   const app = express();
