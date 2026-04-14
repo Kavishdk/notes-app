@@ -3,12 +3,8 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
 
-export interface AuthRequest extends Request {
-  userId?: number;
-}
-
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  const authHeader = (req as AuthRequest).headers?.authorization;
+  const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Authentication required' });
@@ -19,7 +15,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; username: string };
-    (req as AuthRequest).userId = decoded.userId;
+    req.userId = decoded.userId;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid or expired token' });

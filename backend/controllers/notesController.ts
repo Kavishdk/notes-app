@@ -1,24 +1,22 @@
 import { Request, Response } from 'express';
 import { getDb } from '../db.js';
-import { AuthRequest } from '../middleware/authMiddleware.js';
 
 export const getNotes = async (req: Request, res: Response): Promise<void> => {
   try {
-    const authReq = req as AuthRequest;
     const db = getDb();
-    const searchTerm = authReq.query?.search as string | undefined;
+    const searchTerm = req.query.search as string | undefined;
 
     let notes;
     if (searchTerm && searchTerm.trim()) {
       const like = `%${searchTerm.trim()}%`;
       notes = await db.all(
         'SELECT * FROM notes WHERE user_id = ? AND (title LIKE ? OR content LIKE ?) ORDER BY updated_at DESC',
-        [authReq.userId, like, like]
+        [req.userId, like, like]
       );
     } else {
       notes = await db.all(
         'SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC',
-        [authReq.userId]
+        [req.userId]
       );
     }
 
@@ -31,11 +29,10 @@ export const getNotes = async (req: Request, res: Response): Promise<void> => {
 
 export const getNoteById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const authReq = req as AuthRequest;
     const db = getDb();
     const note = await db.get(
       'SELECT * FROM notes WHERE id = ? AND user_id = ?',
-      [authReq.params?.id, authReq.userId]
+      [req.params.id, req.userId]
     );
     if (!note) {
       res.status(404).json({ error: 'Note not found' });
@@ -50,8 +47,7 @@ export const getNoteById = async (req: Request, res: Response): Promise<void> =>
 
 export const createNote = async (req: Request, res: Response): Promise<void> => {
   try {
-    const authReq = req as AuthRequest;
-    const { title, content } = authReq.body;
+    const { title, content } = req.body;
     if (!title || content === undefined) {
       res.status(400).json({ error: 'Title and content are required' });
       return;
@@ -60,9 +56,9 @@ export const createNote = async (req: Request, res: Response): Promise<void> => 
     const db = getDb();
     const result = await db.run(
       'INSERT INTO notes (title, content, user_id) VALUES (?, ?, ?)',
-      [title, content, authReq.userId]
+      [title, content, req.userId]
     );
-    
+
     const newNote = await db.get('SELECT * FROM notes WHERE id = ?', [result.lastID]);
     res.status(201).json(newNote);
   } catch (error) {
@@ -73,8 +69,7 @@ export const createNote = async (req: Request, res: Response): Promise<void> => 
 
 export const updateNote = async (req: Request, res: Response): Promise<void> => {
   try {
-    const authReq = req as AuthRequest;
-    const { title, content } = authReq.body;
+    const { title, content } = req.body;
     if (!title || content === undefined) {
       res.status(400).json({ error: 'Title and content are required' });
       return;
@@ -83,7 +78,7 @@ export const updateNote = async (req: Request, res: Response): Promise<void> => 
     const db = getDb();
     const result = await db.run(
       'UPDATE notes SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
-      [title, content, authReq.params?.id, authReq.userId]
+      [title, content, req.params.id, req.userId]
     );
 
     if (result.changes === 0) {
@@ -91,7 +86,7 @@ export const updateNote = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const updatedNote = await db.get('SELECT * FROM notes WHERE id = ?', [authReq.params?.id]);
+    const updatedNote = await db.get('SELECT * FROM notes WHERE id = ?', [req.params.id]);
     res.status(200).json(updatedNote);
   } catch (error) {
     console.error('Error updating note:', error);
@@ -101,13 +96,12 @@ export const updateNote = async (req: Request, res: Response): Promise<void> => 
 
 export const deleteNote = async (req: Request, res: Response): Promise<void> => {
   try {
-    const authReq = req as AuthRequest;
     const db = getDb();
     const result = await db.run(
       'DELETE FROM notes WHERE id = ? AND user_id = ?',
-      [authReq.params?.id, authReq.userId]
+      [req.params.id, req.userId]
     );
-    
+
     if (result.changes === 0) {
       res.status(404).json({ error: 'Note not found' });
       return;

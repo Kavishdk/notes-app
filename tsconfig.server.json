@@ -10,5 +10,5 @@
     "isolatedModules": false,
     "jsx": "react-jsx"
   },
-  "include": ["server.ts", "backend/**/*.ts"]
+  "include": ["server.ts", "backend/**/*.ts", "backend/types.d.ts"]
 }
