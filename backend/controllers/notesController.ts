@@ -1,23 +1,24 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { getDb } from '../db.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 
-export const getNotes = async (req: AuthRequest, res: Response) => {
+export const getNotes = async (req: Request, res: Response): Promise<void> => {
   try {
+    const authReq = req as AuthRequest;
     const db = getDb();
-    const searchTerm = req.query.search as string | undefined;
+    const searchTerm = authReq.query?.search as string | undefined;
 
     let notes;
     if (searchTerm && searchTerm.trim()) {
       const like = `%${searchTerm.trim()}%`;
       notes = await db.all(
         'SELECT * FROM notes WHERE user_id = ? AND (title LIKE ? OR content LIKE ?) ORDER BY updated_at DESC',
-        [req.userId, like, like]
+        [authReq.userId, like, like]
       );
     } else {
       notes = await db.all(
         'SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC',
-        [req.userId]
+        [authReq.userId]
       );
     }
 
@@ -28,10 +29,14 @@ export const getNotes = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getNoteById = async (req: AuthRequest, res: Response) => {
+export const getNoteById = async (req: Request, res: Response): Promise<void> => {
   try {
+    const authReq = req as AuthRequest;
     const db = getDb();
-    const note = await db.get('SELECT * FROM notes WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    const note = await db.get(
+      'SELECT * FROM notes WHERE id = ? AND user_id = ?',
+      [authReq.params?.id, authReq.userId]
+    );
     if (!note) {
       res.status(404).json({ error: 'Note not found' });
       return;
@@ -43,9 +48,10 @@ export const getNoteById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const createNote = async (req: AuthRequest, res: Response) => {
+export const createNote = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { title, content } = req.body;
+    const authReq = req as AuthRequest;
+    const { title, content } = authReq.body;
     if (!title || content === undefined) {
       res.status(400).json({ error: 'Title and content are required' });
       return;
@@ -54,7 +60,7 @@ export const createNote = async (req: AuthRequest, res: Response) => {
     const db = getDb();
     const result = await db.run(
       'INSERT INTO notes (title, content, user_id) VALUES (?, ?, ?)',
-      [title, content, req.userId]
+      [title, content, authReq.userId]
     );
     
     const newNote = await db.get('SELECT * FROM notes WHERE id = ?', [result.lastID]);
@@ -65,9 +71,10 @@ export const createNote = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const updateNote = async (req: AuthRequest, res: Response) => {
+export const updateNote = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { title, content } = req.body;
+    const authReq = req as AuthRequest;
+    const { title, content } = authReq.body;
     if (!title || content === undefined) {
       res.status(400).json({ error: 'Title and content are required' });
       return;
@@ -76,7 +83,7 @@ export const updateNote = async (req: AuthRequest, res: Response) => {
     const db = getDb();
     const result = await db.run(
       'UPDATE notes SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
-      [title, content, req.params.id, req.userId]
+      [title, content, authReq.params?.id, authReq.userId]
     );
 
     if (result.changes === 0) {
@@ -84,7 +91,7 @@ export const updateNote = async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const updatedNote = await db.get('SELECT * FROM notes WHERE id = ?', [req.params.id]);
+    const updatedNote = await db.get('SELECT * FROM notes WHERE id = ?', [authReq.params?.id]);
     res.status(200).json(updatedNote);
   } catch (error) {
     console.error('Error updating note:', error);
@@ -92,10 +99,14 @@ export const updateNote = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const deleteNote = async (req: AuthRequest, res: Response) => {
+export const deleteNote = async (req: Request, res: Response): Promise<void> => {
   try {
+    const authReq = req as AuthRequest;
     const db = getDb();
-    const result = await db.run('DELETE FROM notes WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    const result = await db.run(
+      'DELETE FROM notes WHERE id = ? AND user_id = ?',
+      [authReq.params?.id, authReq.userId]
+    );
     
     if (result.changes === 0) {
       res.status(404).json({ error: 'Note not found' });

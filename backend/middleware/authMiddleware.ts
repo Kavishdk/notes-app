@@ -7,8 +7,8 @@ export interface AuthRequest extends Request {
   userId?: number;
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  const authHeader = (req as AuthRequest).headers?.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Authentication required' });
@@ -19,7 +19,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; username: string };
-    req.userId = decoded.userId;
+    (req as AuthRequest).userId = decoded.userId;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid or expired token' });
